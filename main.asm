@@ -1,72 +1,76 @@
 .data
-	digits: .asciiz "0123456789ABCDEF"
-	otherSystemStorage: .space 40
-	
+    digits: .asciiz "0123456789ABCDEF"
+    otherSystemStorage: .space 40
+
 .text
 
 main:
-	
-	
+    # convert 2533 to Base 16
+    li $a0, 253        
+    li $a1, 16         
+    jal decimalToOther  
+
+
+    li $v0, 4          
+    la $a0, otherSystemStorage 
+    syscall            
+
+
+    li $v0, 10       
+    syscall
 
 # number: $a0, base: $a1
 decimalToOther:
-	### Frame initilization
-	# save caller's $fp and change $fp
-	addiu $sp, $sp, -4
-	sw $fp, ($sp)
-	la $fp, ($sp)
-	# expand $sp to create new frame
-	addiu $sp, $sp, -20
-	# store tmps previous values
-	sw $t0, -4($fp)
-	sw $t1, -8($fp)
-	sw $t2, -12($fp)
-	sw $t3, -16($fp)
-	sw $t4, -20($fp)
-	
-	### Function logic
-	# load registers
-	la $t0, otherSystemStorage
-	move $t1, $zero	# cur digit
-	move $t2, $a0	# number
-	la $t3, digits	# digits array reference
-	
-	# Your code goes here Ya M3ALEM
+    ### Frame initialization
+    # save caller's $fp and change $fp
+    addiu $sp, $sp, -24
+    sw $fp, 20($sp)
+    move $fp, $sp
+    # store tmps previous values
+    sw $t0, -4($fp)
+    sw $t1, -8($fp)
+    sw $t2, -12($fp)
+    sw $t3, -16($fp)
+    sw $t4, -20($fp)
+
+    ### Function logic
+    la $t0, otherSystemStorage  # Load address of otherSystemStorage into $t0
+    la $t3, digits              # Load address of digits into $t3
+    move $t2, $a0               # Move number to $t2
+
 LP:
-	# While (number > 0)
-	slt $t4, $zero, $t1
-	beqz $t4, LP_END
-	
-	
-	j LP
+    # While (number > 0)
+    slt $t4, $zero, $t2
+    beqz $t4, LP_END
+
+    #  remainder = number % base
+    div $t2, $a1
+    mfhi $t1
+
+    # Store the corresponding digit in the otherSystemStorage array
+    add $t1, $t1, $t3
+    lb $t1, ($t1)
+    sb $t1, ($t0)
+    addiu $t0, $t0, 1
+
+    #  number = number / base
+    mflo $t2
+
+    j LP
 LP_END:
-	# Adding null character at end
-	
-	# Save result address in $v0
-	la $v0, otherSystemStorage
+    # Adding null character at end
+    li $t1, 0
+    sb $t1, ($t0)
 
-	### Frame closing
-	# restore tmps previous values
-	lw $t0, -4($fp)
-	lw $t1, -8($fp)
-	lw $t2, -12($fp)
-	lw $t3, -16($fp)
-	lw $t4, -20($fp)
-	# shrink $sp to close the fram
-	addiu $sp, $sp, 20
-	# retrieves caller's $fp
-	lw $fp, ($sp)
-	addiu $sp, $sp, 4
-	
-	# return
-	jr $ra
-	
-	
-	
-
-	
-	
-	
-	
-	
-	
+    ### Frame cleanup
+    # restore tmps previous values
+    lw $t0, -4($fp)
+    lw $t1, -8($fp)
+    lw $t2, -12($fp)
+    lw $t3, -16($fp)
+    lw $t4, -20($fp)
+    # restore caller's $fp and return
+    move $sp, $fp
+    lw $fp, 20($sp)
+    addiu $sp, $sp, 24
+    jr $ra
