@@ -6,8 +6,8 @@
 
 main:
     # convert 2533 to Base 16
-    li $a0, 253        
-    li $a1, 16         
+    li $a0, 3516        
+    li $a1, 13         
     jal decimalToOther  
 
 
@@ -25,7 +25,7 @@ decimalToOther:
     # save caller's $fp and change $fp
     addiu $sp, $sp, -24
     sw $fp, 20($sp)
-    move $fp, $sp
+    la $fp, 20($sp)
     # store tmps previous values
     sw $t0, -4($fp)
     sw $t1, -8($fp)
@@ -57,7 +57,9 @@ LP:
     mflo $t2
 
     j LP
+    
 LP_END:
+
     # Adding null character at end
     li $t1, 0
     sb $t1, ($t0)
@@ -70,7 +72,6 @@ LP_END:
     lw $t3, -16($fp)
     lw $t4, -20($fp)
     # restore caller's $fp and return
-    move $sp, $fp
-    lw $fp, 20($sp)
+    lw $fp, ($fp)
     addiu $sp, $sp, 24
     jr $ra
