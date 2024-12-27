@@ -20,13 +20,21 @@ main:
     li $a1, 40                 # Max length of the input
     li $v0, 8                  # Read string syscall
     syscall
+    # Traverse the string to find the null terminator
+    la $t0, otherSystemStorage  # Load the base address of the string
+    li $t1, 0                  # Null terminator value
+    move $t2, $t0              # Copy the base address for iteration
 
-    # Inject \0 in the byte 4
-    la $t0, otherSystemStorage  # Load address of otherSystemStorage into $t0
-    li $t1, 0                   # Load null character into $t1
-    sb $t1, 4($t0)              # Store null character at byte 4
+find_null:
+    lb $t3, 0($t2)             # Load the current byte
+    beq $t3, $t1, set_last     # If null terminator is found, break loop
+    addiu $t2, $t2, 1          # Move to the next character
+    j find_null                # Repeat the loop
 
-    # Prompt the user to enter the base of the input number
+set_last:
+    subiu $t2, $t2, 1          # Move back to the last character
+    sb $t1, 0($t2)             # Set the last character to null
+    
     la $a0, prompt1         # Load the prompt message
     li $v0, 4               # Print string syscall
     syscall
@@ -198,4 +206,3 @@ Loop_end:
     lw $fp, 20($sp)
     addiu $sp, $sp, 24
     jr $ra
-
