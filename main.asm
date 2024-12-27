@@ -1,38 +1,55 @@
 .data
     digits: .asciiz "0123456789ABCDEF"
     otherSystemStorage: .space 40
+    prompt1: .asciiz "Enter the current system: "
+    prompt2: .asciiz "Enter the number: "
+    prompt3: .asciiz "Enter the new system: "
+    resultMsg: .asciiz "The number in the new system: "
+
 
 .text
 
 main:
-    # convert 2533 to Base 16
-    li $a0, 2533        
-    li $a1, 16
-    jal decimalToOther  
+    # Prompt the user to enter a number in the original base
+    la $a0, prompt2         # Load the prompt message
+    li $v0, 4               # Print string syscall
+    syscall
 
-    li $v0, 4          
-    la $a0, otherSystemStorage 
-    syscall            
+    # Read the number string
+    la $a0, otherSystemStorage  # Address to store the input
+    li $a1, 40                 # Max length of the input
+    li $v0, 8                  # Read string syscall
+    syscall
 
-    la $a0, otherSystemStorage  
-    li $a1, 16         
-    jal otherToDecimal  
-    
-    move $a0, $v0
-    li $v0, 1 
-    syscall            
-    la $a0, otherSystemStorage  
-    li $a1, 16         
-    jal otherToDecimal  
-    
-    move $a0, $v0
-    li $v0, 1 
-    syscall            
+    # Inject \0 in the byte 4
+    la $t0, otherSystemStorage  # Load address of otherSystemStorage into $t0
+    li $t1, 0                   # Load null character into $t1
+    sb $t1, 4($t0)              # Store null character at byte 4
 
-    li $v0, 10       
+    # Prompt the user to enter the base of the input number
+    la $a0, prompt1         # Load the prompt message
+    li $v0, 4               # Print string syscall
+    syscall
+
+    # Read the base of the input number
+    li $v0, 5               # Read integer syscall
+    syscall
+    move $a1, $v0           # Move the base into $a1
+
+    # Call the otherToDecimal function
+    jal otherToDecimal      # Jump and link to otherToDecimal
+
+    # Print the result
+    move $a0, $v0           # Move the result into $a0
+    li $v0, 1               # Print integer syscall
+    syscall
+
+    # Exit the program
+    li $v0, 10              # Exit syscall
     syscall
 
 
+   
 
 # number: $a0, base: $a1
 decimalToOther:
