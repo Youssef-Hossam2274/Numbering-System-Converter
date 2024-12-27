@@ -6,7 +6,7 @@ prompt1:            .asciiz "Enter the current system: "
 prompt2:            .asciiz "Enter the number: "
 prompt3:            .asciiz "Enter the new system: "
 resultMsg:          .asciiz "The number in the new system: "
-
+errorMsg:           .asciiz "Wrong number or wrong base\n"
 
 .text
 
@@ -18,7 +18,7 @@ main:
     # Read the base of the input number
     li      $v0,            5                                   # Read integer syscall
     syscall
-    move    $t6,            $v0                                 # Move the base into $a1
+    move    $t6,            $v0                                 # Move the base into $t6
 
     # Prompt the user to enter a number in the original base
     la      $a0,            prompt2                             # Load the prompt message
@@ -30,6 +30,7 @@ main:
     li      $a1,            40                                  # Max length of the input
     li      $v0,            8                                   # Read string syscall
     syscall
+
     # Traverse the string to find the null terminator
     la      $t0,            otherSystemStorage                  # Load the base address of the string
     li      $t1,            0                                   # Null terminator value
@@ -45,14 +46,17 @@ set_last:
     subiu   $t2,            $t2,                1               # Move back to the last character
     sb      $t1,            0($t2)                              # Set the last character to null
 
+    # Validate the number for the given base
+    move    $a0,            $t6                                 # Pass the base
+    jal     validateNumber                                      # Call validation function
+    beqz    $v0,            invalidInput                       # If validation fails, terminate
+
     move    $a1,            $t6
     # Call the otherToDecimal function
     jal     otherToDecimal                                      # Jump and link to otherToDecimal
 
     # Print the result
     move    $a0,            $v0                                 # Move the result into $a0
-    # li $v0, 1               # Print integer syscall
-    # syscall
     move    $t6,            $a0
 
     # Prompt the user to enter the new base
@@ -79,13 +83,68 @@ set_last:
     li      $v0,            4                                   # Print string syscall
     syscall
 
-
     # Exit the program
     li      $v0,            10                                  # Exit syscall
     syscall
 
+invalidInput:
+    la      $a0,            errorMsg                            # Load the error message
+    li      $v0,            4                                   # Print string syscall
+    syscall
+    li      $v0,            10                                  # Exit syscall
+    syscall
 
+validateNumber:
+    ### Frame initialization
+    # save caller's $fp and change $fp
+    addiu   $sp,            $sp,                -16
+    sw      $fp,            12($sp)
+    move    $fp,            $sp
+    # store tmps previous values
+    sw      $t0,            -4($fp)
+    sw      $t1,            -8($fp)
+    sw      $t2,            -12($fp)
 
+    ### Function logic
+    la      $t0,            otherSystemStorage                  # Load address of otherSystemStorage into $t0
+    move    $t1,            $a0                                 # Load base into $t1
+
+validateLoop:
+    lb      $t2,            0($t0)                              # Load current character
+    beqz    $t2,            validateEnd                        # If null terminator, end loop
+
+    sub     $t3,            $t2,                '0'             # Subtract ASCII value of '0'
+    blt     $t3,            0,                  invalidChar    # If less than 0, invalid character
+    bge     $t3,            10,                 checkAlpha     # If >= 10, check if alphabetic
+    bge     $t3,            $t1,                invalidChar    # If >= base, invalid character
+    j       continueLoop
+
+checkAlpha:
+    sub     $t3,            $t2,                'A'             # Subtract ASCII value of 'A'
+    blt     $t3,            0,                  invalidChar    # If less than 0, invalid character
+    bge     $t3,            6,                  invalidChar    # If >= 6, invalid character
+    addi    $t3,            $t3,                10              # Adjust for 'A'-'F'
+    bge     $t3,            $t1,                invalidChar    # If >= base, invalid character
+
+continueLoop:
+    addiu   $t0,            $t0,                1               # Move to next character
+    j       validateLoop
+
+invalidChar:
+    li      $v0,            0                                   # Return 0 for invalid
+    j       validateCleanup
+
+validateEnd:
+    li      $v0,            1                                   # Return 1 for valid
+
+validateCleanup:
+    ### Frame cleanup
+    lw      $t0,            -4($fp)
+    lw      $t1,            -8($fp)
+    lw      $t2,            -12($fp)
+    lw      $fp,            12($sp)
+    addiu   $sp,            $sp,                16
+    jr      $ra
 
     # number: $a0, base: $a1
 decimalToOther:
