@@ -10,6 +10,15 @@
 .text
 
 main:
+    la $a0, prompt1         # Load the prompt message
+    li $v0, 4               # Print string syscall
+    syscall
+
+    # Read the base of the input number
+    li $v0, 5               # Read integer syscall
+    syscall
+    move $t6, $v0           # Move the base into $a1
+
     # Prompt the user to enter a number in the original base
     la $a0, prompt2         # Load the prompt message
     li $v0, 4               # Print string syscall
@@ -35,15 +44,7 @@ set_last:
     subiu $t2, $t2, 1          # Move back to the last character
     sb $t1, 0($t2)             # Set the last character to null
     
-    la $a0, prompt1         # Load the prompt message
-    li $v0, 4               # Print string syscall
-    syscall
-
-    # Read the base of the input number
-    li $v0, 5               # Read integer syscall
-    syscall
-    move $a1, $v0           # Move the base into $a1
-
+    move $a1,$t6
     # Call the otherToDecimal function
     jal otherToDecimal      # Jump and link to otherToDecimal
 
