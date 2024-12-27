@@ -1,6 +1,7 @@
 .data
     digits: .asciiz "0123456789ABCDEF"
     otherSystemStorage: .space 40
+    dicimalStorage: .space 40
     prompt1: .asciiz "Enter the current system: "
     prompt2: .asciiz "Enter the number: "
     prompt3: .asciiz "Enter the new system: "
@@ -50,8 +51,34 @@ set_last:
 
     # Print the result
     move $a0, $v0           # Move the result into $a0
-    li $v0, 1               # Print integer syscall
+    # li $v0, 1               # Print integer syscall
+    # syscall
+    move $t6, $a0           
+
+    # Prompt the user to enter the new base
+    la $a0, prompt3         # Load the prompt message
+    li $v0, 4               # Print string syscall
     syscall
+
+    # Read the new base
+    li $v0, 5               # Read integer syscall
+    syscall
+    move $a1, $v0           # Move the new base into $a1
+
+    move $a0, $t6           # Move the result into $a0
+    # Call the decimalToOther function
+    jal decimalToOther      # Jump and link to decimalToOther
+
+    # Print the result message
+    la $a0, resultMsg       # Load the result message
+    li $v0, 4               # Print string syscall
+    syscall
+
+    # Print the converted number
+    la $a0, dicimalStorage  # Load the address of the converted number
+    li $v0, 4                   # Print string syscall
+    syscall
+
 
     # Exit the program
     li $v0, 10              # Exit syscall
@@ -76,7 +103,7 @@ decimalToOther:
     sw $t5, -24($fp)
 
     ### Function logic
-    la $t0, otherSystemStorage  # Load address of otherSystemStorage into $t0
+    la $t0, dicimalStorage  # Load address of otherSystemStorage into $t0
     la $t3, digits              # Load address of digits into $t3
     move $t2, $a0               # Move number to $t2
 	
@@ -113,7 +140,7 @@ LP:
 LP_END:
 
 	# Reverse the result
-	la $t1, otherSystemStorage	# pointer at array start
+	la $t1, dicimalStorage	# pointer at array start
 	addiu $t2, $t0, -1			# pointer at array end
 	
 REV_LP:
